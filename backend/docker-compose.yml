@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: base_bank
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastapi_backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      - DB_URL=postgresql://root:root@postgres:5432/base_bank
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+
+volumes:
+  postgres_data:

@@ -1,0 +1,130 @@
+from schemas import UserCreate, TokenSchema, requestdetails
+from models import User, TokenTable
+from database import Base, engine, SessionLocal
+from utils import get_hashed_password, verify_password, create_access_token, create_refresh_token, JWT_SECRET_KEY, ALGORITHM
+from auth_bearer import JWTBearer
+from fastapi import FastAPI, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from datetime import datetime, timezone
+import jwt
+from functools import wraps
+
+Base.metadata.create_all(engine)
+
+
+def get_session():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+def token_required(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        payload = jwt.decode(kwargs['dependencies'], JWT_SECRET_KEY, ALGORITHM)
+        user_id = payload['sub']
+        data = kwargs['session'].query(TokenTable).filter_by(
+            user_id=user_id, access_toke=kwargs['dependencies'], status=True).first()
+        if data:
+            return func(kwargs['dependencies'], kwargs['session'])
+
+        else:
+            return {'msg': "Token blocked"}
+
+    return wrapper
+
+
+app = FastAPI()
+
+
+@app.post("/register")
+def register(user: UserCreate, session: Session = Depends(get_session)):
+    existing_user = session.query(User).filter_by(email=user.email).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+
+    encrypted_password = get_hashed_password(user.password)
+
+    new_user = User(username=user.username, email=user.email,
+                    password=encrypted_password)
+
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+
+    return {
+        "message": "user created successfully",
+        "status_code": status.HTTP_200_OK
+    }
+
+
+@app.post("/login", response_model=TokenSchema)
+def login(request: requestdetails, session: Session = Depends(get_session)):
+    user = session.query(User).filter(User.email == request.email).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect email")
+
+    hashed_pass = user.password
+
+    if not verify_password(request.password, hashed_pass):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password")
+
+    access = create_access_token(user.id)
+    refresh = create_refresh_token(user.id)
+
+    token_db = TokenTable(user_id=user.id,  access_token=access,
+                          refresh_token=refresh, status=True)
+
+    session.add(token_db)
+    session.commit()
+    session.refresh(token_db)
+
+    return {
+        "message": "user logged in successfully",
+        "status_code": status.HTTP_200_OK,
+        "access_token": access,
+        "refresh_token": refresh
+    }
+
+
+@app.post('/logout')
+def logout(dependencies=Depends(JWTBearer()), db: Session = Depends(get_session)):
+    token = dependencies
+    payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
+    user_id = payload['sub']
+    token_record = db.query(TokenTable).all()
+    info = []
+
+    for record in token_record:
+        print("record", record)
+        current_utc_time = datetime.now(timezone.utc).replace(tzinfo=None)
+    
+        if (current_utc_time - record.created_date).days > 1:
+            info.append(record.user_id)
+
+    if info:
+        existing_token = db.query(TokenTable).where(
+            TokenTable.user_id.in_(info)).delete()
+        db.commit()
+
+    existing_token = db.query(TokenTable).filter(
+        TokenTable.user_id == user_id, TokenTable.access_token == token).first()
+
+    if existing_token:
+        existing_token.status = False
+        db.add(existing_token)
+        db.commit()
+        db.refresh(existing_token)
+
+    return {
+        "message": "logout Successfully",
+        "status_code": status.HTTP_200_OK
+    }
