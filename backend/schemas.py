@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-import datetime
+
 
 class UserCreate(BaseModel):
     username: str
@@ -7,7 +7,7 @@ class UserCreate(BaseModel):
     password: str
 
 
-class requestdetails(BaseModel):
+class RequestDetails(BaseModel):
     email: str
     password: str
 
@@ -17,15 +17,16 @@ class TokenSchema(BaseModel):
     refresh_token: str
 
 
-class changepassword(BaseModel):
+class TransactionCreate(BaseModel):
+    receiver_id: int
+    amount: float
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
     email: str
-    old_password: str
-    new_password: str
+    balance: float
 
-
-class TokenCreate(BaseModel):
-    user_id: str
-    access_token: str
-    refresh_token: str
-    status: bool
-    created_date: datetime.datetime
+    class Config:
+        orm_mode = True
