@@ -148,3 +148,61 @@ def logout(dependencies=Depends(JWTBearer()), db: Session = Depends(get_session)
         db.refresh(existing_token)
 
     return {"message": "logout Successfully", "status_code": status.HTTP_200_OK}
+
+
+@app.get("/me", response_model=UserResponse, dependencies=[Depends(JWTBearer())])
+def get_me(dependencies=Depends(JWTBearer()), session: Session = Depends(get_session)):
+    token = dependencies
+    payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
+    user_id = payload["sub"]
+
+    user = session.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    return user
+
+
+@app.post("/transfer", dependencies=[Depends(JWTBearer())])
+def transfer(
+    transaction: TransactionCreate,
+    dependencies=Depends(JWTBearer()),
+    session: Session = Depends(get_session),
+):
+    token = dependencies
+    payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
+    sender_id = payload["sub"]
+
+    sender = session.query(User).filter(User.id == sender_id).first()
+    receiver = session.query(User).filter(User.id == transaction.receiver_id).first()
+
+    if sender is None or receiver is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    if sender.balance < transaction.amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
+        )
+
+    sender.balance -= transaction.amount
+    receiver.balance += transaction.amount
+
+    new_transaction = Transaction(
+        sender_id=sender_id,
+        receiver_id=transaction.receiver_id,
+        amount=transaction.amount,
+    )
+
+    session.add(new_transaction)
+    session.commit()
+    session.refresh(new_transaction)
+
+    return {
+        "message": "Transaction successful",
+        "transaction_id": new_transaction.id,
+        "status_code": status.HTTP_200_OK,
+    }
