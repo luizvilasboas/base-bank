@@ -77,7 +77,7 @@ def register(user: UserCreate, session: Session = Depends(get_session)):
 
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email já foi registrado."
         )
 
     encrypted_password = get_hashed_password(user.password)
@@ -90,7 +90,7 @@ def register(user: UserCreate, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(new_user)
 
-    return {"message": "user created successfully", "status_code": status.HTTP_200_OK}
+    return {"message": "Usuário criado com sucesso.", "status_code": status.HTTP_200_OK}
 
 
 @app.post("/login", response_model=TokenSchema)
@@ -99,14 +99,14 @@ def login(request: RequestDetails, session: Session = Depends(get_session)):
 
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect email"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email incorreto."
         )
 
     hashed_pass = user.password
 
     if not verify_password(request.password, hashed_pass):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect password"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Senha incorreta."
         )
 
     access = create_access_token(user.id)
@@ -121,7 +121,7 @@ def login(request: RequestDetails, session: Session = Depends(get_session)):
     session.refresh(token_db)
 
     return {
-        "message": "user logged in successfully",
+        "message": "Usuário logado com sucesso.",
         "status_code": status.HTTP_200_OK,
         "access_token": access,
         "refresh_token": refresh,
@@ -161,7 +161,7 @@ def logout(dependencies=Depends(JWTBearer()), db: Session = Depends(get_session)
         db.commit()
         db.refresh(existing_token)
 
-    return {"message": "logout Successfully", "status_code": status.HTTP_200_OK}
+    return {"message": "Logout feito com sucesso.", "status_code": status.HTTP_200_OK}
 
 
 @app.get("/me", response_model=UserResponse, dependencies=[Depends(JWTBearer())])
@@ -173,7 +173,7 @@ def get_me(dependencies=Depends(JWTBearer()), session: Session = Depends(get_ses
     user = session.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado."
         )
 
     return user
@@ -194,12 +194,12 @@ def transfer(
 
     if sender is None or receiver is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado."
         )
 
     if sender.balance < transaction.amount:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Balança insuficiente para fazer essa transação."
         )
 
     sender.balance -= transaction.amount
@@ -216,7 +216,7 @@ def transfer(
     session.refresh(new_transaction)
 
     return {
-        "message": "Transaction successful",
+        "message": "Transação feita com sucesso.",
         "transaction_id": new_transaction.id,
         "status_code": status.HTTP_200_OK,
     }
