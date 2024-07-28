@@ -1,38 +1,33 @@
-import React, { useState } from 'react';
-import { useAuth } from './context/AuthContext';
-import Login from './components/Login';
-import Register from './components/Register';
+import React from "react";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
+import LoginPage from "./pages/Login";
+import RegisterPage from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
 
-function App() {
-  const [isRegister, setIsRegister] = useState(false);
-  const { isAuthenticated } = useAuth();
+const PrivateRoute = () => {
+  const token = localStorage.getItem("token");
+  return token ? <Outlet /> : <Navigate to="/login" />;
+};
 
-  if (isAuthenticated) {
-    return <div className="flex items-center justify-center min-h-screen bg-gray-100">Você está logado!</div>;
-  }
-
+const App = () => {
   return (
-    <div>
-      {isRegister ? <Register onLogin={() => setIsRegister(false)} /> : <Login onRegister={() => setIsRegister(true)} />}
-      <div className="text-center mt-4">
-        {isRegister ? (
-          <p>
-            Já tem uma conta?{' '}
-            <button className="text-blue-500 hover:underline" onClick={() => setIsRegister(false)}>
-              Login
-            </button>
-          </p>
-        ) : (
-          <p>
-            Não tem uma conta?{' '}
-            <button className="text-blue-500 hover:underline" onClick={() => setIsRegister(true)}>
-              Registrar
-            </button>
-          </p>
-        )}
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route exact path="/login" element={<LoginPage />} />
+        <Route exact path="/register" element={<RegisterPage />} />
+        <Route element={<PrivateRoute />}>
+          <Route exact path="/" element={<Navigate replace to="/dashboard" />} />
+          <Route exact path="/dashboard" element={<Dashboard />} />
+        </Route>
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;

@@ -1,0 +1,22 @@
+const Alert = ({ type, text }) => {
+  const bgColor = type === "error" ? "bg-red-500" : "bg-green-500";
+  const borderColor = type === "error" ? "border-red-400" : "border-green-400";
+  const bgLightColor = type === "error" ? "bg-red-100" : "bg-green-100";
+  const textColor = type === "error" ? "text-red-700" : "text-green-700";
+  const title = type === "error" ? "Erro" : "Sucesso";
+
+  return (
+    <div role="alert" className="mb-4">
+      <div className={`${bgColor} text-white font-bold rounded-t px-4 py-2`}>
+        {title}
+      </div>
+      <div
+        className={`border border-t-0 ${borderColor} rounded-b ${bgLightColor} px-4 py-3 ${textColor}`}
+      >
+        <p>{text}</p>
+      </div>
+    </div>
+  );
+};
+
+export default Alert;
