@@ -18,7 +18,7 @@ class TokenSchema(BaseModel):
 
 
 class TransactionCreate(BaseModel):
-    receiver_id: int
+    receiver_email: str
     amount: float
 
 

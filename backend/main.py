@@ -71,6 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.post("/register")
 def register(user: UserCreate, session: Session = Depends(get_session)):
     existing_user = session.query(User).filter_by(email=user.email).first()
@@ -190,7 +191,9 @@ def transfer(
     sender_id = payload["sub"]
 
     sender = session.query(User).filter(User.id == sender_id).first()
-    receiver = session.query(User).filter(User.id == transaction.receiver_id).first()
+    receiver = (
+        session.query(User).filter(User.email == transaction.receiver_email).first()
+    )
 
     if sender is None or receiver is None:
         raise HTTPException(
@@ -199,15 +202,16 @@ def transfer(
 
     if sender.balance < transaction.amount:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Balança insuficiente para fazer essa transação."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Balança insuficiente para fazer essa transação.",
         )
 
     sender.balance -= transaction.amount
     receiver.balance += transaction.amount
 
     new_transaction = Transaction(
-        sender_id=sender_id,
-        receiver_id=transaction.receiver_id,
+        sender_id=sender.email,
+        receiver_id=receiver.email,
         amount=transaction.amount,
     )
 
@@ -222,7 +226,7 @@ def transfer(
     }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
