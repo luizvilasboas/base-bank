@@ -17,6 +17,7 @@ from utils import (
 )
 from auth_bearer import JWTBearer
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import jwt
@@ -56,6 +57,19 @@ def token_required(func):
 
 app = FastAPI()
 
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.post("/register")
 def register(user: UserCreate, session: Session = Depends(get_session)):
@@ -206,3 +220,9 @@ def transfer(
         "transaction_id": new_transaction.id,
         "status_code": status.HTTP_200_OK,
     }
+
+
+if __name__ == '__main__':
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
