@@ -16,8 +16,6 @@ export const AuthProvider = ({ children }) => {
 
         localStorage.setItem("token", access_token);
 
-        axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-
         return { status: true, text: "Login feito com sucesso." };
       }
     } catch (error) {
@@ -30,11 +28,17 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post("http://localhost:8000/logout", {});
+      await axios.post(
+        "http://localhost:8000/logout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       localStorage.removeItem("token");
-
-      delete axios.defaults.headers.common["Authorization"];
     } catch (error) {
       console.error(`Erro ao fazer logout: ${error}`);
     }

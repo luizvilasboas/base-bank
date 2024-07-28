@@ -3,14 +3,20 @@ import React, { createContext, useContext, useState } from "react";
 const MessageContext = createContext();
 
 export const MessageProvider = ({ children }) => {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState({ type: "", text: "" });
 
-  const setMessageContent = (type, text) => {
+  const setMessageContext = (type, text) => {
     setMessage({ type, text });
   };
 
+  const clearMessage = () => {
+    setMessage({ type: "", text: "" });
+  };
+
   return (
-    <MessageContext.Provider value={{ message, setMessage: setMessageContent }}>
+    <MessageContext.Provider
+      value={{ message, setMessage: setMessageContext, clearMessage }}
+    >
       {children}
     </MessageContext.Provider>
   );

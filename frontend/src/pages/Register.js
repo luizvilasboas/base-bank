@@ -21,7 +21,7 @@ const Register = () => {
 
     if (result.status) {
       setMessage("success", result.text);
-      navigate("/dashboad");
+      navigate("/login");
     } else {
       setMessage("error", result.text);
     }
