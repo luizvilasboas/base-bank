@@ -1,5 +1,6 @@
 import React from "react";
 import { useMessage } from "../context/MessageContext";
+import { FaTimes } from "react-icons/fa";
 
 const Alert = ({ type, text }) => {
   const { clearMessage } = useMessage();
@@ -16,7 +17,7 @@ const Alert = ({ type, text }) => {
       >
         {title}
         <button onClick={clearMessage} className="text-white font-bold">
-          &times;
+          <FaTimes className="text-xl" />
         </button>
       </div>
       <div
