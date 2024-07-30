@@ -1,11 +1,16 @@
+from typing import List
+
+from psycopg2.errors import UniqueViolation
 from schemas import (
     UserCreate,
     TokenSchema,
     RequestDetails,
     TransactionCreate,
     UserResponse,
+    PixKeyCreate,
+    PixKeyResponse,
 )
-from models import User, TokenTable, Transaction
+from models import User, TokenTable, Transaction, PixKey
 from database import Base, engine, SessionLocal
 from utils import (
     get_hashed_password,
@@ -165,6 +170,51 @@ def logout(dependencies=Depends(JWTBearer()), db: Session = Depends(get_session)
     return {"message": "Logout feito com sucesso.", "status_code": status.HTTP_200_OK}
 
 
+@app.post("/pix_keys", dependencies=[Depends(JWTBearer())])
+def create_pix_key(
+    pix_key: PixKeyCreate,
+    dependencies=Depends(JWTBearer()),
+    session: Session = Depends(get_session),
+):
+    token = dependencies
+    payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
+    user_id = payload["sub"]
+
+    existing_pix_key = session.query(PixKey).filter(PixKey.key == pix_key.key).first()
+    if existing_pix_key:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Chave do pix já existe."
+        )
+
+    new_pix_key = PixKey(user_id=user_id, key=pix_key.key)
+    
+    session.add(new_pix_key)
+    session.commit()
+    session.refresh(new_pix_key)
+
+    return {
+        "message": "Chave do pix criada com sucesso.",
+        "pix_key": new_pix_key.key,
+        "status_code": status.HTTP_200_OK,
+    }
+
+
+@app.get(
+    "/pix_keys",
+    response_model=List[PixKeyResponse],
+    dependencies=[Depends(JWTBearer())],
+)
+def get_pix_keys(
+    dependencies=Depends(JWTBearer()), session: Session = Depends(get_session)
+):
+    token = dependencies
+    payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
+    user_id = payload["sub"]
+
+    pix_keys = session.query(PixKey).filter_by(user_id=user_id).all()
+    return pix_keys
+
+
 @app.get("/me", response_model=UserResponse, dependencies=[Depends(JWTBearer())])
 def get_me(dependencies=Depends(JWTBearer()), session: Session = Depends(get_session)):
     token = dependencies
@@ -181,39 +231,27 @@ def get_me(dependencies=Depends(JWTBearer()), session: Session = Depends(get_ses
 
 
 @app.post("/transfer", dependencies=[Depends(JWTBearer())])
-def transfer(
-    transaction: TransactionCreate,
-    dependencies=Depends(JWTBearer()),
-    session: Session = Depends(get_session),
-):
+def transfer(transaction: TransactionCreate, dependencies=Depends(JWTBearer()), session: Session = Depends(get_session)):
     token = dependencies
     payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
-    sender_id = payload["sub"]
+    user_id = payload["sub"]
 
-    sender = session.query(User).filter(User.id == sender_id).first()
-    receiver = (
-        session.query(User).filter(User.email == transaction.receiver_email).first()
-    )
+    sender_key = session.query(PixKey).filter(PixKey.user_id == user_id).first()
+    receiver_key = session.query(PixKey).filter(PixKey.key == transaction.pix_key).first()
 
-    if sender is None or receiver is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado."
-        )
+    if sender_key is None or receiver_key is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário ou chave PIX não encontrado.")
+
+    sender = session.query(User).filter(User.id == sender_key.user_id).first()
+    receiver = session.query(User).filter(User.id == receiver_key.user_id).first()
 
     if sender.balance < transaction.amount:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Balança insuficiente para fazer essa transação.",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Balança insuficiente para fazer essa transação.")
 
     sender.balance -= transaction.amount
     receiver.balance += transaction.amount
 
-    new_transaction = Transaction(
-        sender_id=sender.email,
-        receiver_id=receiver.email,
-        amount=transaction.amount,
-    )
+    new_transaction = Transaction(sender_id=sender.id, receiver_id=receiver.id, amount=transaction.amount)
 
     session.add(new_transaction)
     session.commit()
@@ -224,7 +262,6 @@ def transfer(
         "transaction_id": new_transaction.id,
         "status_code": status.HTTP_200_OK,
     }
-
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,11 +6,19 @@ import datetime
 
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True, unique=True)
     username = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False, unique=True, primary_key=True)
     password = Column(String(100), nullable=False)
     balance = Column(Float, default=1000.0)
+
+
+class PixKey(Base):
+    __tablename__ = "pix_keys"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String(100), unique=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user = relationship("User", foreign_keys=[user_id])
 
 
 class TokenTable(Base):
@@ -24,10 +32,10 @@ class TokenTable(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    id = Column(Integer, primary_key=True)
-    sender_id = Column(String(50), ForeignKey("users.email"))
-    receiver_id = Column(String(50), ForeignKey("users.email"))
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     amount = Column(Float, nullable=False)
-    timestamp = Column(DateTime, default=datetime.datetime.now)
+    timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])

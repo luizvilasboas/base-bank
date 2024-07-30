@@ -18,8 +18,18 @@ class TokenSchema(BaseModel):
 
 
 class TransactionCreate(BaseModel):
-    receiver_email: str
+    pix_key: str
     amount: float
+
+
+class PixKeyCreate(BaseModel):
+    key: str
+
+
+class PixKeyResponse(BaseModel):
+    id: int
+    key: str
+    user_id: int
 
 
 class UserResponse(BaseModel):
@@ -27,6 +37,3 @@ class UserResponse(BaseModel):
     username: str
     email: str
     balance: float
-
-    class Config:
-        orm_mode = True
