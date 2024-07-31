@@ -1,12 +1,31 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMessage } from "../context/MessageContext";
-import { FaEnvelope, FaMoneyBillWave } from "react-icons/fa";
+import { FaKey, FaMoneyBillWave } from "react-icons/fa";
 
 const TransferForm = () => {
-  const [recipientEmail, setRecipientEmail] = useState("");
+  const [userPixKeys, setUserPixKeys] = useState([]);
+  const [selectedUserPixKey, setSelectedUserPixKey] = useState("");
+  const [recipientPixKey, setRecipientPixKey] = useState("");
   const [amount, setAmount] = useState("");
   const { setMessage } = useMessage();
+
+  useEffect(() => {
+    const fetchUserPixKeys = async () => {
+      try {
+        const response = await axios.get("http://localhost:8000/pix_keys", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setUserPixKeys(response.data);
+      } catch (error) {
+        setMessage("error", "Erro ao carregar suas chaves PIX.");
+      }
+    };
+
+    fetchUserPixKeys();
+  }, [setMessage]);
 
   const handleTransfer = async (e) => {
     e.preventDefault();
@@ -15,7 +34,8 @@ const TransferForm = () => {
       const response = await axios.post(
         "http://localhost:8000/transfer",
         {
-          receiver_email: recipientEmail,
+          sender_pix_key: selectedUserPixKey,
+          receiver_pix_key: recipientPixKey,
           amount: amount,
         },
         {
@@ -26,6 +46,9 @@ const TransferForm = () => {
       );
       if (response.status === 200) {
         setMessage("success", "Transferência realizada com sucesso.");
+        setSelectedUserPixKey("");
+        setRecipientPixKey("");
+        setAmount("");
       } else {
         setMessage("error", response.data.message);
       }
@@ -35,20 +58,37 @@ const TransferForm = () => {
   };
 
   return (
-    <div className="bg-white p-6">
+    <div className="bg-white p-6 rounded-lg shadow-lg">
       <h3 className="text-2xl font-extrabold mb-6 text-gray-900">Transferir Dinheiro</h3>
       <form onSubmit={handleTransfer}>
         <div className="mb-4">
           <label className="block text-gray-700 font-semibold">
-            <FaEnvelope className="inline-block text-blue-500 mr-2" />
-            Email do Destinatário
+            <FaKey className="inline-block text-blue-500 mr-2" />
+            Selecionar sua chave PIX
+          </label>
+          <select
+            className="w-full p-3 border border-gray-300 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            value={selectedUserPixKey}
+            onChange={(e) => setSelectedUserPixKey(e.target.value)}
+            required
+          >
+            <option value="" disabled>Selecione uma chave PIX</option>
+            {userPixKeys.map((key) => (
+              <option key={key.id} value={key.key}>{key.key}</option>
+            ))}
+          </select>
+        </div>
+        <div className="mb-4">
+          <label className="block text-gray-700 font-semibold">
+            <FaKey className="inline-block text-blue-500 mr-2" />
+            Chave PIX do Destinatário
           </label>
           <input
-            type="email"
+            type="text"
             className="w-full p-3 border border-gray-300 rounded mt-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
-            value={recipientEmail}
-            onChange={(e) => setRecipientEmail(e.target.value)}
-            placeholder="Digite o email do destinatário"
+            value={recipientPixKey}
+            onChange={(e) => setRecipientPixKey(e.target.value)}
+            placeholder="Digite a chave PIX do destinatário"
             required
           />
         </div>

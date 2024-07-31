@@ -33,7 +33,7 @@ const PixKeyForm = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg mt-6">
+    <div className="bg-white p-6 rounded-lg">
       <h3 className="text-2xl font-extrabold mb-6 text-gray-900">
         Criar Chave PIX
       </h3>
