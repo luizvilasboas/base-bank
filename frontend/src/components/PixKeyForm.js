@@ -21,8 +21,9 @@ const PixKeyForm = () => {
         }
       );
 
-      if (response.status === 201) {
+      if (response.status === 200) {
         setMessage("success", "Chave PIX criada com sucesso.");
+        setPixKey("");
       } else {
         setMessage("error", response.data.message);
       }
