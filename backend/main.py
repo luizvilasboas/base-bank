@@ -187,7 +187,7 @@ def create_pix_key(
         )
 
     new_pix_key = PixKey(user_id=user_id, key=pix_key.key)
-    
+
     session.add(new_pix_key)
     session.commit()
     session.refresh(new_pix_key)
@@ -231,37 +231,64 @@ def get_me(dependencies=Depends(JWTBearer()), session: Session = Depends(get_ses
 
 
 @app.post("/transfer", dependencies=[Depends(JWTBearer())])
-def transfer(transaction: TransactionCreate, dependencies=Depends(JWTBearer()), session: Session = Depends(get_session)):
+def transfer(
+    transaction: TransactionCreate,
+    dependencies=Depends(JWTBearer()),
+    session: Session = Depends(get_session),
+):
     token = dependencies
     payload = jwt.decode(token, JWT_SECRET_KEY, ALGORITHM)
-    user_id = payload["sub"]
+    sender_id = payload["sub"]
 
-    sender_key = session.query(PixKey).filter(PixKey.user_id == user_id).first()
-    receiver_key = session.query(PixKey).filter(PixKey.key == transaction.pix_key).first()
+    # Verificar se a chave PIX do remetente pertence ao usuário autenticado
+    sender_pix_key = (
+        session.query(PixKey)
+        .filter(PixKey.key == transaction.sender_pix_key, PixKey.user_id == sender_id)
+        .first()
+    )
+    if not sender_pix_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chave PIX do remetente não encontrada.",
+        )
 
-    if sender_key is None or receiver_key is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário ou chave PIX não encontrado.")
+    receiver_pix_key = (
+        session.query(PixKey).filter(PixKey.key == transaction.receiver_pix_key).first()
+    )
+    if not receiver_pix_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chave PIX do destinatário não encontrada.",
+        )
 
-    sender = session.query(User).filter(User.id == sender_key.user_id).first()
-    receiver = session.query(User).filter(User.id == receiver_key.user_id).first()
+    sender = session.query(User).filter(User.id == sender_pix_key.user_id).first()
+    receiver = session.query(User).filter(User.id == receiver_pix_key.user_id).first()
 
     if sender.balance < transaction.amount:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Balança insuficiente para fazer essa transação.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Saldo insuficiente para realizar a transação.",
+        )
 
     sender.balance -= transaction.amount
     receiver.balance += transaction.amount
 
-    new_transaction = Transaction(sender_id=sender.id, receiver_id=receiver.id, amount=transaction.amount)
+    new_transaction = Transaction(
+        sender_id=sender.id,
+        receiver_id=receiver.id,
+        amount=transaction.amount,
+    )
 
     session.add(new_transaction)
     session.commit()
     session.refresh(new_transaction)
 
     return {
-        "message": "Transação feita com sucesso.",
+        "message": "Transação realizada com sucesso.",
         "transaction_id": new_transaction.id,
         "status_code": status.HTTP_200_OK,
     }
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -18,7 +18,8 @@ class TokenSchema(BaseModel):
 
 
 class TransactionCreate(BaseModel):
-    pix_key: str
+    sender_pix_key: str
+    receiver_pix_key: str
     amount: float
 
 
