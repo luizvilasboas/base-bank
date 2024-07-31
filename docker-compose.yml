@@ -10,11 +10,22 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - .postgres_data:/var/lib/postgresql/data
-
-  fastapi:
+      - ./backend/.postgres_data:/var/lib/postgresql/data
+  
+  frontend:
     build:
-      context: .
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+    
+  backend:
+    build:
+      context: ./backend
       dockerfile: Dockerfile
     container_name: fastapi_backend
     restart: always
@@ -25,7 +36,4 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./:/app
-
-volumes:
-  postgres_data:
+      - ./backend:/app

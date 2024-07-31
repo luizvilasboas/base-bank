@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-DATABASE_URL = "postgresql://root:root@postgres:5432/base_bank"
+DATABASE_URL = os.getenv("DB_URL")
 
 engine = create_engine(DATABASE_URL)
 
