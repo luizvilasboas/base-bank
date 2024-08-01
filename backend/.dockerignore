@@ -1,2 +1,5 @@
 # Virtual env for Python
 venv
+
+# PostgreSQL data
+.postgres_data
