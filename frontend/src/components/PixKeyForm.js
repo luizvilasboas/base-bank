@@ -12,7 +12,7 @@ const PixKeyForm = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/pix/create",
+        "http://localhost/pix/create",
         { key: pixKey },
         {
           headers: {

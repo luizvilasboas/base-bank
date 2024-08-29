@@ -1,4 +1,3 @@
 (A) Integrate with Celery
 (B) Make database replication
-(C) Use NGIX as a loadbalancer
-(D) Integrate with core (create new branch)
+(C) Integrate with core (create new branch)

@@ -27,7 +27,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: fastapi_backend
     restart: always
     depends_on:
       - postgres
@@ -36,7 +35,7 @@ services:
       - DB_URL=postgresql://root:root@postgres:5432/base_bank
       - REDIS_URL=redis://redis:6379/0
     ports:
-      - "8000:8000"
+      - "8000"
     volumes:
       - ./backend:/app
 
@@ -48,3 +47,14 @@ services:
       - "6379:6379"
     volumes:
       - ./backend/.redis_data:/data
+  
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+

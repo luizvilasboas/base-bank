@@ -23,7 +23,7 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
 
 2. **Suba os serviços com o Docker:**
    ```
-   docker compose up -d
+   docker compose up --scale backend=3 -d
    ```
 
 ## Configuração
@@ -36,7 +36,7 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
    - Abra o navegador e vá para: [127.0.0.1:3000](http://127.0.0.1:3000)
 
 2. **Acesse a documentação interativa da API:**
-   - Abra o navegador e vá para: [127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+   - Abra o navegador e vá para: [127.0.0.1/docs](http://127.0.0.1/docs)
 
 ## Endpoints Principais
 

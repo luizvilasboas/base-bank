@@ -6,7 +6,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
-      const response = await axios.post("http://localhost:8000/auth/login", {
+      const response = await axios.post("http://localhost/auth/login", {
         email: email,
         password: password,
       });
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post(
-        "http://localhost:8000/auth/logout",
+        "http://localhost/auth/logout",
         {},
         {
           headers: {
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password) => {
     try {
-      const response = await axios.post("http://localhost:8000/auth/register", {
+      const response = await axios.post("http://localhost/auth/register", {
         username: name,
         email: email,
         password: password,

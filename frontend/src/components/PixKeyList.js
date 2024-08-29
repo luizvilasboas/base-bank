@@ -12,7 +12,7 @@ const PixKeyList = () => {
 
       if (token) {
         try {
-          const response = await axios.get("http://localhost:8000/pix/list", {
+          const response = await axios.get("http://localhost/pix/list", {
             headers: {
               Authorization: `Bearer ${token}`,
             },
