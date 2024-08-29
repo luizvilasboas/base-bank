@@ -1,0 +1,5 @@
+(A) Integrate with Redis
+(B) Integrate with Celery
+(C) Make database replication
+(D) Use NGIX as a loadbalancer
+(E) Integrate with core (create new branch)
