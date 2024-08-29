@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
+from utils.redis import delete_data, set_data, get_data
 from models.models import PixKey
 from schemas.schemas import PixKeyCreate, PixKeyCreateResponse, PixKeyResponse
 from typing import List
@@ -50,6 +51,8 @@ def create_pix_key(
     session.commit()
     session.refresh(new_pix_key)
 
+    delete_data(f"pix_keys_{user_id}")
+
     return PixKeyCreateResponse(message="Chave do pix criada com sucesso.", pix_key=new_pix_key.key, status_code=status.HTTP_200_OK)
 
 
@@ -71,5 +74,21 @@ def list_pix_keys(
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]
 
+    cached_keys = get_data(f"pix_keys_{user_id}")
+    if cached_keys:
+        return cached_keys
+
     pix_keys = session.query(PixKey).filter_by(user_id=user_id).all()
+
+    pix_keys_data = [
+        {
+            "id": pix_key.id,
+            "key": pix_key.key,
+            "user_id": pix_key.user_id,
+        }
+        for pix_key in pix_keys
+    ]
+
+    set_data(f"pix_keys_{user_id}", pix_keys_data, expiration=300)
+    
     return pix_keys

@@ -31,9 +31,20 @@ services:
     restart: always
     depends_on:
       - postgres
+      - redis
     environment:
       - DB_URL=postgresql://root:root@postgres:5432/base_bank
+      - REDIS_URL=redis://redis:6379/0
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./backend/.redis_data:/data

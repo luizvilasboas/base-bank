@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
+from utils.redis import delete_data
 from models.models import PixKey, Transaction, User
 from schemas.schemas import TransactionCreate, TransactionCreateResponse
 from auth.auth_bearer import JWTBearer
@@ -86,5 +87,8 @@ def create_transaction(
     session.add(new_transaction)
     session.commit()
     session.refresh(new_transaction)
+
+    delete_data(f"user_{sender.id}")
+    delete_data(f"user_{receiver.id}")
 
     return TransactionCreateResponse(message="Transação realizada com sucesso.", transaction_id=new_transaction.id, status_code=status.HTTP_200_OK)

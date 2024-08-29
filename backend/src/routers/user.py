@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
+from utils.redis import set_data, get_data
 from models.models import User
 from schemas.schemas import UserResponse
 from auth.auth_bearer import JWTBearer
@@ -33,11 +34,24 @@ def get_current_user(
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]
 
+    cached_user = get_data(f"user_{user_id}")
+    if cached_user:
+        return cached_user
+
     user = session.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuário não encontrado."
         )
+
+    user_data = {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "balance": user.balance,
+    }
+
+    set_data(f"user_{user_id}", user_data, expiration=300)
 
     return user

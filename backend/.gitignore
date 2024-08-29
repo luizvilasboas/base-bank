@@ -113,3 +113,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Redis data folder
+.redis_data
+
+# PostgreSQL data folder
+.postgres_data
