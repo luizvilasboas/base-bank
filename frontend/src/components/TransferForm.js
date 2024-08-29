@@ -13,7 +13,7 @@ const TransferForm = () => {
   useEffect(() => {
     const fetchUserPixKeys = async () => {
       try {
-        const response = await axios.get("http://localhost:8000/pix_keys", {
+        const response = await axios.get("http://localhost:8000/pix/list", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -32,7 +32,7 @@ const TransferForm = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/transfer",
+        "http://localhost:8000/transaction/create ",
         {
           sender_pix_key: selectedUserPixKey,
           receiver_pix_key: recipientPixKey,
