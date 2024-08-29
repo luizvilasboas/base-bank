@@ -33,10 +33,10 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
 ## Uso
 
 1. **Acesse a interface web interativa com a API:**
-   - Abra o navegador e vá para: [http://127.0.0.1:3000](http://127.0.0.1:3000)
+   - Abra o navegador e vá para: [127.0.0.1:3000](http://127.0.0.1:3000)
 
 2. **Acesse a documentação interativa da API:**
-   - Abra o navegador e vá para: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+   - Abra o navegador e vá para: [127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ## Endpoints Principais
 
