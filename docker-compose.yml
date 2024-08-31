@@ -34,6 +34,8 @@ services:
     environment:
       - DB_URL=postgresql://root:root@postgres:5432/base_bank
       - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     ports:
       - "8000"
     volumes:
@@ -48,6 +50,24 @@ services:
     volumes:
       - ./backend/.redis_data:/data
   
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery_worker
+    restart: always
+    depends_on:
+      - backend
+      - redis
+    environment:
+      - DB_URL=postgresql://root:root@postgres:5432/base_bank
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONPATH=/app/src
+    command: celery -A src.tasks.celery_config.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+
   nginx:
     image: nginx:latest
     restart: always

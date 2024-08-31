@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
-from utils.redis import delete_data
-from models.models import PixKey, Transaction, User
+from models.models import PixKey
 from schemas.schemas import TransactionCreate, TransactionCreateResponse
 from auth.auth_bearer import JWTBearer
+from tasks.transaction_tasks import process_transaction
 import jwt
 
 router = APIRouter(
@@ -39,7 +39,6 @@ def create_transaction(
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     sender_id = payload["sub"]
 
-    # Verify if the sender's Pix key exists and belongs to the sender
     sender_pix_key = (
         session.query(PixKey)
         .filter(PixKey.key == transaction_data.sender_pix_key, PixKey.user_id == sender_id)
@@ -51,7 +50,6 @@ def create_transaction(
             detail="Chave PIX do remetente não encontrada.",
         )
 
-    # Verify if the receiver's Pix key exists
     receiver_pix_key = (
         session.query(PixKey)
         .filter(PixKey.key == transaction_data.receiver_pix_key)
@@ -63,32 +61,10 @@ def create_transaction(
             detail="Chave PIX do destinatário não encontrada.",
         )
 
-    # Retrieve sender and receiver user data
-    sender = session.query(User).filter(
-        User.id == sender_pix_key.user_id).first()
-    receiver = session.query(User).filter(
-        User.id == receiver_pix_key.user_id).first()
-
-    if sender.balance < transaction_data.amount:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Saldo insuficiente para realizar a transação.",
-        )
-
-    sender.balance -= transaction_data.amount
-    receiver.balance += transaction_data.amount
-
-    new_transaction = Transaction(
-        sender_id=sender.id,
-        receiver_id=receiver.id,
-        amount=transaction_data.amount,
+    result = process_transaction.delay(
+        sender_id=sender_pix_key.user_id,
+        receiver_id=receiver_pix_key.user_id,
+        amount=transaction_data.amount
     )
 
-    session.add(new_transaction)
-    session.commit()
-    session.refresh(new_transaction)
-
-    delete_data(f"user_{sender.id}")
-    delete_data(f"user_{receiver.id}")
-
-    return TransactionCreateResponse(message="Transação realizada com sucesso.", transaction_id=new_transaction.id, status_code=status.HTTP_200_OK)
+    return TransactionCreateResponse(message="Transação realizada com sucesso.", task_id=result.id)
