@@ -12,6 +12,8 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
 - **PostgreSQL**: Banco de dados utilizado.
 - **Docker**: Para containerização do ambiente de desenvolvimento e produção.
 - **React**: Frontend para interação com a API.
+- **Celery**: Sistema de fila de tarefas distribuídas para execução assíncrona.
+- **Redis**: Banco de dados em memória usado como broker para Celery e para cache de dados. 
 
 ## Instalação
 
@@ -28,7 +30,7 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
 
 ## Configuração
 
-- Certifique-se de configurar as variáveis de ambiente necessárias, como `DB_URL`, `JWT_SECRET_KEY`, e `JWT_REFRESH_SECRET_KEY`.
+- Certifique-se de configurar as variáveis de ambiente necessárias, como `DB_URL`, `JWT_SECRET_KEY`, `JWT_REFRESH_SECRET_KEY`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` e `REDIS_URL`.
 
 ## Uso
 
