@@ -1,2 +1,1 @@
-(A) Make database replication
-(B) Integrate with core (create new branch)
+(A) Integrate with core (create new branch)
