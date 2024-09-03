@@ -44,6 +44,7 @@ def create_transaction(
         .filter(PixKey.key == transaction_data.sender_pix_key, PixKey.user_id == sender_id)
         .first()
     )
+
     if not sender_pix_key:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -55,6 +56,7 @@ def create_transaction(
         .filter(PixKey.key == transaction_data.receiver_pix_key)
         .first()
     )
+
     if not receiver_pix_key:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -64,6 +66,7 @@ def create_transaction(
     result = process_transaction.delay(
         sender_id=sender_pix_key.user_id,
         receiver_id=receiver_pix_key.user_id,
+        pix_key=transaction_data.receiver_pix_key,
         amount=transaction_data.amount
     )
 

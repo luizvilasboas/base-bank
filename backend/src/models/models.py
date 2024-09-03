@@ -9,14 +9,14 @@ class User(Base):
     Represents a user in the system.
 
     Attributes:
-        id (int): Primary key, auto-incremented unique identifier for the user.
+        id (str): Primary key, auto-incremented unique identifier for the user.
         username (str): The username of the user, must be unique and not null.
         email (str): The user's email, must be unique and not null.
         password (str): The user's password, stored as a hash, and cannot be null.
         balance (float): The user's balance, defaults to 1000.0.
     """
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, autoincrement=True, unique=True)
+    id = Column(String(255), primary_key=True, unique=True)
     username = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False, unique=True)
     password = Column(String(100), nullable=False)
@@ -36,7 +36,7 @@ class PixKey(Base):
     __tablename__ = "pix_keys"
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String(100), unique=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(255), ForeignKey("users.id"), nullable=False)
     user = relationship("User", foreign_keys=[user_id])
 
 
@@ -52,7 +52,7 @@ class TokenTable(Base):
         created_date (datetime): The date and time when the token was created, defaults to the current date and time.
     """
     __tablename__ = "token"
-    user_id = Column(Integer)
+    user_id = Column(String(255))
     access_token = Column(String(450), primary_key=True)
     refresh_token = Column(String(450), nullable=False)
     status = Column(Boolean)
@@ -66,7 +66,7 @@ class Transaction(Base):
     Attributes:
         id (int): Primary key, auto-incremented identifier for the transaction.
         sender_id (int): Foreign key to the sender's user ID, cannot be null.
-        receiver_id (int): Foreign key to the receiver's user ID, cannot be null.
+        receiver_id (int): Foreign key to the receiver's user ID, can be null.
         amount (float): The amount of the transaction, cannot be null.
         timestamp (datetime): The date and time of the transaction, defaults to the current UTC time.
         sender (User): Relationship to the User model, linking the sender to this transaction.
@@ -74,8 +74,8 @@ class Transaction(Base):
     """
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sender_id = Column(String(255), ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(String(255), ForeignKey("users.id"), nullable=True)
     amount = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     sender = relationship("User", foreign_keys=[sender_id])

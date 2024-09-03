@@ -14,6 +14,7 @@ from utils.utils import (
 from schemas.schemas import LogoutResponse, UserCreate, TokenSchema, RequestDetails, UserRegisterResponse
 from models.models import User, TokenTable
 from auth.auth_bearer import JWTBearer
+from services.core import core_service
 
 router = APIRouter(
     prefix="/auth",
@@ -26,15 +27,15 @@ def register(user: UserCreate, session: Session = Depends(get_session)):
     """
     Registers a new user in the system.
 
-    Args:
-        user (UserCreate): The user details for registration.
-        session (Session): The database session dependency.
+    - **user**: The user details for registration.
+    - **session**: The database session dependency.
 
     Returns:
-        dict: A message indicating the success of the registration process.
+    - A message indicating the success of the registration process.
 
     Raises:
-        HTTPException: If the email is already registered.
+    - **400 Bad Request**: If the email is already registered.
+    - **500 Internal Server Error**: If the user creation fails in the core service.
     """
     existing_user = session.query(User).filter_by(email=user.email).first()
 
@@ -43,10 +44,12 @@ def register(user: UserCreate, session: Session = Depends(get_session)):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email já foi registrado."
         )
 
+    user_id = core_service.register_user(user.username, user.email)
+
     encrypted_password = get_hashed_password(user.password)
 
     new_user = User(
-        username=user.username, email=user.email, password=encrypted_password
+        id=user_id, username=user.username, email=user.email, password=encrypted_password
     )
 
     session.add(new_user)
@@ -61,15 +64,14 @@ def login(request: RequestDetails, session: Session = Depends(get_session)):
     """
     Authenticates a user and generates access and refresh tokens.
 
-    Args:
-        request (RequestDetails): The login details provided by the user.
-        session (Session): The database session dependency.
+    - **request**: The login details provided by the user.
+    - **session**: The database session dependency.
 
     Returns:
-        dict: A message indicating the success of the login process along with access and refresh tokens.
+    - A message indicating the success of the login process along with access and refresh tokens.
 
     Raises:
-        HTTPException: If the email or password is incorrect.
+    - **400 Bad Request**: If the email or password is incorrect.
     """
     user = session.query(User).filter(User.email == request.email).first()
 
@@ -104,12 +106,14 @@ def logout(token=Depends(JWTBearer()), session: Session = Depends(get_session)):
     """
     Logs out a user by invalidating their access token.
 
-    Args:
-        dependencies: JWTBearer dependency to authenticate the user.
-        session (Session): The database session dependency.
+    - **token**: JWTBearer dependency to authenticate the user.
+    - **session**: The database session dependency.
 
     Returns:
-        dict: A message indicating the success of the logout process.
+    - A message indicating the success of the logout process.
+
+    Raises:
+    - **401 Unauthorized**: If the token is invalid.
     """
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]

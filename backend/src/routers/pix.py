@@ -6,6 +6,7 @@ from models.models import PixKey
 from schemas.schemas import PixKeyCreate, PixKeyCreateResponse, PixKeyResponse
 from typing import List
 from auth.auth_bearer import JWTBearer
+from services.core import core_service
 import jwt
 
 router = APIRouter(
@@ -38,12 +39,13 @@ def create_pix_key(
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]
 
-    existing_pix_key = session.query(PixKey).filter(
-        PixKey.key == pix_key_data.key).first()
+    existing_pix_key = session.query(PixKey).filter(PixKey.key == pix_key_data.key).first()
     if existing_pix_key:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Chave do pix já existe."
         )
+
+    core_service.register_key(pix_key_data.key, user_id)
 
     new_pix_key = PixKey(user_id=user_id, key=pix_key_data.key)
 

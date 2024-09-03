@@ -120,11 +120,11 @@ class PixKeyResponse(BaseModel):
     Attributes:
         id (int): The unique identifier of the Pix key.
         key (str): The Pix key value.
-        user_id (int): The ID of the user associated with the Pix key.
+        user_id (str): The ID of the user associated with the Pix key.
     """
     id: int
     key: str
-    user_id: int
+    user_id: str
 
 
 class UserResponse(BaseModel):
@@ -132,12 +132,12 @@ class UserResponse(BaseModel):
     Schema for the response when retrieving user details.
 
     Attributes:
-        id (int): The unique identifier of the user.
+        id (str): The unique identifier of the user.
         username (str): The username of the user.
         email (str): The email of the user.
         balance (float): The current balance of the user.
     """
-    id: int
+    id: str
     username: str
     email: str
     balance: float
