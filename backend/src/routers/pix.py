@@ -6,7 +6,15 @@ from models.models import PixKey
 from schemas.schemas import PixKeyCreate, PixKeyCreateResponse, PixKeyResponse
 from typing import List
 from auth.auth_bearer import JWTBearer
+import logging
 import jwt
+
+logger = logging.getLogger("pix")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("logs/pix.log")
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 router = APIRouter(
     prefix="/pix",
@@ -35,12 +43,15 @@ def create_pix_key(
     Raises:
         HTTPException: If the Pix key already exists.
     """
+    logger.info("Tentativa de criação de chave Pix para o token: %s", token)
+
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]
 
     existing_pix_key = session.query(PixKey).filter(
         PixKey.key == pix_key_data.key).first()
     if existing_pix_key:
+        logger.warning("Chave do Pix já existente: %s", pix_key_data.key)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Chave do pix já existe."
         )
@@ -50,6 +61,9 @@ def create_pix_key(
     session.add(new_pix_key)
     session.commit()
     session.refresh(new_pix_key)
+
+    logger.info("Chave Pix criada com sucesso para o usuário ID: %s, chave: %s",
+                user_id, new_pix_key.key)
 
     delete_data(f"pix_keys_{user_id}")
 
@@ -71,11 +85,15 @@ def list_pix_keys(
     Returns:
         List[PixKeyResponse]: A list of Pix keys associated with the authenticated user.
     """
+    logger.info("Tentativa de listagem de chaves Pix para o token: %s", token)
+
     payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     user_id = payload["sub"]
 
     cached_keys = get_data(f"pix_keys_{user_id}")
     if cached_keys:
+        logger.info(
+            "Chaves Pix recuperadas do cache para o usuário ID: %s", user_id)
         return cached_keys
 
     pix_keys = session.query(PixKey).filter_by(user_id=user_id).all()
@@ -90,5 +108,7 @@ def list_pix_keys(
     ]
 
     set_data(f"pix_keys_{user_id}", pix_keys_data, expiration=300)
-    
+
+    logger.info("Chaves Pix listadas com sucesso para o usuário ID: %s", user_id)
+
     return pix_keys

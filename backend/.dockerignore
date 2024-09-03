@@ -1,9 +1,5 @@
 # Virtual env for Python
 venv
 
-# PostgreSQL data
-.postgres_data
-
-
-# Redis data
-.redis_data
+# API logs
+logs

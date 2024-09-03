@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from models.models import Transaction, User
 from utils.utils import get_session
 from utils.redis import delete_data
+from fastapi import HTTPException, status
+
 
 @celery_app.task(name="src.tasks.transaction_tasks.process_transaction")
 def process_transaction(sender_id, receiver_id, amount):
@@ -11,21 +13,26 @@ def process_transaction(sender_id, receiver_id, amount):
     try:
         sender = session.query(User).filter(User.id == sender_id).first()
         if not sender:
-            print(f"Sender com ID {sender_id} não encontrado.")
-            return {"error": f"Sender com ID {sender_id} não encontrado."}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Sender com ID {sender_id} não encontrado."
+            )
 
         receiver = session.query(User).filter(User.id == receiver_id).first()
         if not receiver:
-            print(f"Receiver com ID {receiver_id} não encontrado.")
-            return {"error": f"Receiver com ID {receiver_id} não encontrado."}
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Receiver com ID {receiver_id} não encontrado."
+            )
 
         if sender.balance < amount:
-            print("Saldo insuficiente para realizar a transação.")
-            return {"error": "Saldo insuficiente para realizar a transação."}
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Saldo insuficiente para realizar a transação."
+            )
 
         sender.balance -= amount
         receiver.balance += amount
-        print(f"Transferindo {amount} de {sender_id} para {receiver_id}")
 
         new_transaction = Transaction(
             sender_id=sender.id,
@@ -40,13 +47,18 @@ def process_transaction(sender_id, receiver_id, amount):
         delete_data(f"user_{sender.id}")
         delete_data(f"user_{receiver.id}")
 
-        print("Transação realizada com sucesso.")
         return {"message": "Transação realizada com sucesso.", "transaction_id": new_transaction.id}
+
+    except HTTPException as http_exc:
+        session.rollback()
+        raise http_exc
 
     except Exception as e:
         session.rollback()
-        print(f"Erro ao processar transação: {str(e)}")
-        return {"error": str(e)}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro interno ao processar transação."
+        )
 
     finally:
         session.close()
