@@ -3,7 +3,7 @@ import time
 from dotenv import load_dotenv
 from fastapi import HTTPException
 import random
-import uuid
+
 
 def generate_cpf():
     cpf = [random.randint(0, 9) for _ in range(9)]
@@ -136,7 +136,7 @@ class CoreService:
                 "Falhou na hora de criar um usuário no banco central", status_code=response.status_code)
 
 
-core_service = CoreService("4786a354-b336-4c47-a47a-b2e1ea10fc29", "$2b$12$Cea4mD6FUagDXiiJfqmNw.rupw8CrE0av832niu/xkGtfDly/tRHu")
+core_service = CoreService("43fc5c28-adc6-4882-8510-d2cff3404f27", "B@se_B@nk!2024#Pr0t3ct")
 
 if __name__ == '__main__':
     print(core_service.register_user('teste 7', 'teste.7@email.com'))
