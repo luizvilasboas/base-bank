@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 import random
 
-
 def generate_cpf():
     cpf = [random.randint(0, 9) for _ in range(9)]
     

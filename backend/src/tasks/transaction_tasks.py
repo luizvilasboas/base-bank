@@ -5,7 +5,7 @@ from utils.utils import get_session
 from utils.redis import delete_data
 from services.core import core_service
 from fastapi import HTTPException, status
-
+from services.core import core_service
 
 @celery_app.task(name="src.tasks.transaction_tasks.process_transaction")
 def process_transaction(sender_id, receiver_id, pix_key, amount):
