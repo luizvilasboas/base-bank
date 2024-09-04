@@ -116,3 +116,6 @@ dmypy.json
 
 # Ignore all logs
 logs/*.log
+
+# Ignore secret .env file
+.env.secret

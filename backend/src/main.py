@@ -7,6 +7,9 @@ import os
 import logging
 import threading
 import time
+from dotenv import load_dotenv
+
+load_dotenv(".env.secret")
 
 logger = logging.getLogger("app")
 logger.setLevel(logging.INFO)
@@ -19,10 +22,10 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', '179.189.94.124')
-RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT', 9080))
-RABBITMQ_USER = os.getenv('RABBITMQ_USER', '43fc5c28-adc6-4882-8510-d2cff3404f27')
-RABBITMQ_PASSWORD = os.getenv('RABBITMQ_PASSWORD', 'B@se_B@nk!2024#Pr0t3ct')
+RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
+RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
+RABBITMQ_USER = os.getenv('INSTITUTION_ID')
+RABBITMQ_PASSWORD = os.getenv('INSTITUTION_SECRET')
 
 origins = [
     "http://localhost",

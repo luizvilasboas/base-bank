@@ -1,34 +1,8 @@
+from utils.generators import generate_cpf, generate_phone_number
+from fastapi import HTTPException
 import requests
 import time
-from dotenv import load_dotenv
-from fastapi import HTTPException
-import random
-
-def generate_cpf():
-    cpf = [random.randint(0, 9) for _ in range(9)]
-    
-    sum1 = sum([cpf[i] * (10 - i) for i in range(9)])
-    check_digit1 = 11 - (sum1 % 11)
-    check_digit1 = check_digit1 if check_digit1 < 10 else 0
-    cpf.append(check_digit1)
-
-    sum2 = sum([cpf[i] * (11 - i) for i in range(10)])
-    check_digit2 = 11 - (sum2 % 11)
-    check_digit2 = check_digit2 if check_digit2 < 10 else 0
-    cpf.append(check_digit2)
-
-    formatted_cpf = f"{cpf[0]}{cpf[1]}{cpf[2]}.{cpf[3]}{cpf[4]}{cpf[5]}.{cpf[6]}{cpf[7]}{cpf[8]}-{cpf[9]}{cpf[10]}"
-    return formatted_cpf
-
-def generate_phone_number():
-    area_code = random.randint(10, 99)
-    prefix = random.randint(3000, 3999)
-    suffix = random.randint(1000, 9999)
-
-    formatted_phone_number = f"({area_code}) {prefix}-{suffix}"
-    return formatted_phone_number
-
-load_dotenv()
+import os
 
 
 class CoreService:
@@ -87,7 +61,7 @@ class CoreService:
             raise HTTPException(
                 "Falhou na hora de criar uma transação no banco central", status_code=response.status_code)
 
-    def register_key(self, key, user_id, key_type = "chave_aleatoria"):
+    def register_key(self, key, user_id, key_type="chave_aleatoria"):
         self.token, self.expiration_time = self.get_token_with_expiration()
 
         url = "https://projetosdufv.live/chave_pix/"
@@ -135,7 +109,4 @@ class CoreService:
                 "Falhou na hora de criar um usuário no banco central", status_code=response.status_code)
 
 
-core_service = CoreService("43fc5c28-adc6-4882-8510-d2cff3404f27", "B@se_B@nk!2024#Pr0t3ct")
-
-if __name__ == '__main__':
-    print(core_service.register_user('teste 7', 'teste.7@email.com'))
+core_service = CoreService(os.getenv('INSTITUTION_ID'), os.getenv('INSTITUTION_SECRET'))
