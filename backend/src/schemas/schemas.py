@@ -101,6 +101,16 @@ class TransactionCreate(BaseModel):
     amount: float
 
 
+class AmountInput(BaseModel):
+    """
+    Schema for deposit and withdrown.
+
+    Attributes:
+        amount (float): The amount of the transaction.
+    """
+    amount: float
+
+
 class PixKeyCreate(BaseModel):
     """
     Schema for creating a new Pix key.

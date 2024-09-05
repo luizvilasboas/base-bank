@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
-from models.models import PixKey, User, Transaction
-from schemas.schemas import TransactionCreate, TransactionCreateResponse
+from models.models import PixKey, User
+from schemas.schemas import TransactionCreate, TransactionCreateResponse, AmountInput
 from auth.auth_bearer import JWTBearer
 from utils.redis import delete_data
 from services.core import core_service
@@ -21,6 +21,59 @@ router = APIRouter(
     tags=["transaction"],
     dependencies=[Depends(JWTBearer())],
 )
+
+
+@router.post("/deposit", response_model=TransactionCreateResponse)
+def depoist(amount_create: AmountInput, token: str = Depends(JWTBearer()), session: Session = Depends(get_session)):
+    payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+    user_id = payload["sub"]
+
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        logger.warning("Usuário com ID %s não encontrado.", user_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado."
+        )
+
+    logger.info("Adicionando %s ao saldo do usuário ID: %s", amount_create.amount, user_id)
+    user.balance += amount_create.amount
+    session.commit()
+
+    delete_data(f"user_{user.id}")
+    logger.info("Saldo adicionado com sucesso para o usuário ID: %s", user_id)
+
+    return TransactionCreateResponse(message="Dinheiro adicionado com sucesso.")
+
+
+@router.post("/withdraw", response_model=TransactionCreateResponse)
+def withdraw(amount_withdraw: AmountInput, token: str = Depends(JWTBearer()), session: Session = Depends(get_session)):
+    payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+    user_id = payload["sub"]
+
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        logger.warning("Usuário com ID %s não encontrado.", user_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado."
+        )
+
+    if user.balance < amount_withdraw.amount:
+        logger.warning("Saldo insuficiente para retirar %s do usuário ID: %s", amount_withdraw.amount, user_id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Saldo insuficiente."
+        )
+
+    logger.info("Retirando %s do saldo do usuário ID: %s", amount_withdraw.amount, user_id)
+    user.balance -= amount_withdraw.amount
+    session.commit()
+
+    delete_data(f"user_{user.id}")
+    logger.info("Retirada de saldo realizada com sucesso para o usuário ID: %s", user_id)
+
+    return TransactionCreateResponse(message="Dinheiro retirado com sucesso.")
 
 
 @router.post("/create", response_model=TransactionCreateResponse)
