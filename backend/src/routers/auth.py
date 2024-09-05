@@ -16,6 +16,7 @@ from services.core import core_service
 import datetime
 import logging
 import jwt
+from dotenv import load_dotenv
 
 logger = logging.getLogger("auth")
 logger.setLevel(logging.INFO)
@@ -29,6 +30,7 @@ router = APIRouter(
     tags=["auth"],
 )
 
+load_dotenv('../../.env.secret')
 
 @router.post("/register", response_model=UserRegisterResponse)
 def register(user: UserCreate, session: Session = Depends(get_session)):

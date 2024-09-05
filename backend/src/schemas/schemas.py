@@ -45,10 +45,8 @@ class TransactionCreateResponse(BaseModel):
 
     Attributes:
         message (str): A message indicating the result of the transaction creation.
-        task_id (str): The unique identifier of the created transaction.
     """
     message: str
-    task_id: str
 
 
 class UserCreate(BaseModel):

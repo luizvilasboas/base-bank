@@ -7,14 +7,12 @@ from jose import jwt
 from database.database import SessionLocal
 from models.models import TokenTable
 
-# Token expiration settings
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 ALGORITHM = "HS256"
-JWT_SECRET_KEY = "narscbjim@$@&^@&%^&RFghgjvbdsha"  # Secret for access tokens
-JWT_REFRESH_SECRET_KEY = "13ugfdfgh@#$%^@&jkl45678902"  # Secret for refresh tokens
+JWT_SECRET_KEY = "narscbjim@$@&^@&%^&RFghgjvbdsha"
+JWT_REFRESH_SECRET_KEY = "13ugfdfgh@#$%^@&jkl45678902"
 
-# Password hashing context
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
-from models.models import PixKey
+from models.models import PixKey, User, Transaction
 from schemas.schemas import TransactionCreate, TransactionCreateResponse
 from auth.auth_bearer import JWTBearer
-from tasks.transaction_tasks import process_transaction
+from utils.redis import delete_data
+from services.core import core_service
 import jwt
 import logging
 
@@ -75,24 +76,34 @@ def create_transaction(
         .first()
     )
 
-    if not receiver_pix_key:
-        logger.warning("Chave PIX do destinatário não encontrada: %s",
-                       transaction_data.receiver_pix_key)
+    logger.info("Iniciando transação de %s para %s, valor: %s", transaction_data.sender_pix_key, transaction_data.receiver_pix_key, transaction_data.amount)
+
+    sender = session.query(User).filter(User.id == sender_id).first()
+    if not sender:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chave PIX do destinatário não encontrada.",
+            detail=f"Sender com ID {sender_id} não encontrado."
         )
 
-    logger.info("Iniciando transação de %s para %s, valor: %s",
-                sender_pix_key.key, receiver_pix_key.key, transaction_data.amount)
+    if sender.balance < transaction_data.amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Saldo insuficiente para realizar a transação."
+        )
 
-    result = process_transaction.delay(
-        sender_id=sender_pix_key.user_id,
-        receiver_id=receiver_pix_key.user_id,
-        pix_key=transaction_data.receiver_pix_key,
-        amount=transaction_data.amount
-    )
+    core_service.transaction(transaction_data.receiver_pix_key, transaction_data.amount, sender_id)
 
-    logger.info("Transação iniciada com sucesso. Task ID: %s", result.id)
+    sender.balance -= transaction_data.amount
 
-    return TransactionCreateResponse(message="Transação realizada com sucesso.", task_id=result.id)
+    receiver = session.query(User).filter(User.id == receiver_pix_key.user_id).first()
+
+    session.commit()
+
+    delete_data(f"user_{sender.id}")
+
+    if receiver:
+        delete_data(f"user_{receiver.id}")
+
+    logger.info("Transação realizada com sucesso.")
+
+    return TransactionCreateResponse(message="Transação realizada com sucesso.")

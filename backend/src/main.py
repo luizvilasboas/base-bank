@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.src.models.models import User
+from backend.src.utils.utils import get_session
 from routers import auth, user, pix, transaction
 from database.database import Base, engine
 import pika
 import os
 import logging
 import threading
-import time
+import json
 from dotenv import load_dotenv
 
 load_dotenv(".env.secret")
@@ -21,11 +23,6 @@ logger.addHandler(file_handler)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-RABBITMQ_HOST = os.getenv('RABBITMQ_HOST')
-RABBITMQ_PORT = int(os.getenv('RABBITMQ_PORT'))
-RABBITMQ_USER = os.getenv('INSTITUTION_ID')
-RABBITMQ_PASSWORD = os.getenv('INSTITUTION_SECRET')
 
 origins = [
     "http://localhost",
@@ -47,47 +44,87 @@ app.include_router(pix.router)
 app.include_router(transaction.router)
 
 
-def get_rabbitmq_connection():
-    """Estabelece conexão com o RabbitMQ e retorna a conexão e o canal."""
-    while True:
-        try:
-            credentials = pika.PlainCredentials(
-                RABBITMQ_USER, RABBITMQ_PASSWORD)
-            parameters = pika.ConnectionParameters(
-                host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
-            connection = pika.BlockingConnection(parameters)
-            channel = connection.channel()
-            logger.info(
-                f'Consegui conectar com RabbitMQ -> PORT:{RABBITMQ_PORT}, HOST: {RABBITMQ_HOST}')
-            return connection, channel
-        except pika.exceptions.AMQPConnectionError as e:
-            logger.error(f"Erro ao conectar ao RabbitMQ: {e}")
-            time.sleep(2)
+RABBITMQ_HOST = "179.189.94.124"
+RABBITMQ_PORT = 9080
+RABBITMQ_USER = "43fc5c28-adc6-4882-8510-d2cff3404f27"
+RABBITMQ_PASSWORD = "B@se_B@nk!2024#Pr0t3ct"
+
+QUEUE_RECEIVE = 'transacao_43fc5c28-adc6-4882-8510-d2cff3404f27_queue'
+QUEUE_RESPONSE = 'transacao_43fc5c28-adc6-4882-8510-d2cff3404f27_response_queue'
 
 
-def rabbitmq_consumer():
-    """Função que consome mensagens da fila RabbitMQ."""
-    connection, channel = get_rabbitmq_connection()
+def on_message(ch, method, properties, body):
+    """Callback para processar as mensagens recebidas."""
+    mensagem = body.decode()
+    logger.info(f"Mensagem recebida: {mensagem}")
 
-    channel.queue_declare(queue='base_bank_fila')
+    ammount = mensagem['valor']
+    to = mensagem['usuario_destino']
 
-    def callback(ch, method, properties, body):
-        logger.info(f"Mensagem recebida: {body.decode()}")
+    session = get_session()
 
-    channel.basic_consume(queue='base_bank_fila', on_message_callback=callback, auto_ack=True)
-
-    logger.info('Esperando mensagens do RabbitMQ...')
     try:
-        channel.start_consuming()
+        user = session.query(User).filter_by(id=to).first()
+
+        if user:
+            user.balance += ammount
+            session.commit()
+
+            logger.info(f"Adicionado {ammount} para usuário {user.username}, que agora tem {user.balance}")
+            resultado = {
+                "sucesso": True,
+                "mensagem": "Transação realizada com sucesso."
+            }
+        else:
+            logger.info("Usuário não encontrado.")
+            resultado = {
+                "sucesso": False,
+                "mensagem": "Usuário não encontrado."
+            }
     except Exception as e:
-        logger.error(f"Erro durante o consumo de mensagens: {e}")
-        channel.close()
-        connection.close()
-        rabbitmq_consumer()
+        session.rollback()
+        logger.error(f"Erro ao processar a transação: {e}")
+        resultado = {
+            "sucesso": False,
+            "mensagem": "Erro ao processar a transação."
+        }
+    finally:
+        session.close()
+
+    ch.basic_publish(
+        exchange='',
+        routing_key=QUEUE_RESPONSE,
+        body=json.dumps(resultado),
+        properties=pika.BasicProperties(
+            delivery_mode=2,
+        )
+    )
+
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
-thread = threading.Thread(target=rabbitmq_consumer)
-thread.start()
+def consume_rabbitmq_messages():
+    """Função para consumir mensagens RabbitMQ."""
+    credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
+    parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
+    connection = pika.BlockingConnection(parameters)
+    channel = connection.channel()
+
+    channel.queue_declare(queue=QUEUE_RECEIVE, durable=True)
+    channel.queue_declare(queue=QUEUE_RESPONSE, durable=True)
+
+    channel.basic_consume(queue=QUEUE_RECEIVE, on_message_callback=on_message, auto_ack=False)
+
+    logger.info(f"Escutando a fila '{QUEUE_RECEIVE}'...")
+
+    channel.start_consuming()
+
+
+@app.on_event("startup")
+def startup_event():
+    """Evento de inicialização do FastAPI."""
+    threading.Thread(target=consume_rabbitmq_messages, daemon=True).start()
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -109,4 +109,4 @@ class CoreService:
                 "Falhou na hora de criar um usuário no banco central", status_code=response.status_code)
 
 
-core_service = CoreService(os.getenv('INSTITUTION_ID'), os.getenv('INSTITUTION_SECRET'))
+core_service = CoreService("43fc5c28-adc6-4882-8510-d2cff3404f27", "B@se_B@nk!2024#Pr0t3ct")
