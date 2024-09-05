@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from utils.utils import JWT_SECRET_KEY, ALGORITHM, get_session
-from models.models import PixKey
+from models.models import PixKey, User, Transaction
 from schemas.schemas import TransactionCreate, TransactionCreateResponse
 from auth.auth_bearer import JWTBearer
-from tasks.transaction_tasks import process_transaction
+from utils.redis import delete_data
 import jwt
 import logging
 
@@ -57,6 +57,7 @@ def create_transaction(
         .filter(PixKey.key == transaction_data.sender_pix_key, PixKey.user_id == sender_id)
         .first()
     )
+
     if not sender_pix_key:
         logger.warning("Chave PIX do remetente não encontrada: %s para o usuário ID: %s",
                        transaction_data.sender_pix_key, sender_id)
@@ -73,23 +74,45 @@ def create_transaction(
         .filter(PixKey.key == transaction_data.receiver_pix_key)
         .first()
     )
+
     if not receiver_pix_key:
-        logger.warning("Chave PIX do destinatário não encontrada: %s",
-                       transaction_data.receiver_pix_key)
+        logger.warning("Chave PIX do destinatário não encontrada: %s para o usuário ID: %s",
+                       transaction_data.sender_pix_key, sender_id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chave PIX do destinatário não encontrada.",
         )
 
-    logger.info("Iniciando transação de %s para %s, valor: %s",
-                sender_pix_key.key, receiver_pix_key.key, transaction_data.amount)
+    logger.info("Iniciando transação de %s para %s, valor: %s", transaction_data.sender_pix_key, transaction_data.receiver_pix_key, transaction_data.amount)
 
-    result = process_transaction.delay(
-        sender_id=sender_pix_key.user_id,
-        receiver_id=receiver_pix_key.user_id,
-        amount=transaction_data.amount
-    )
+    sender = session.query(User).filter(User.id == sender_id).first()
+    if not sender:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sender com ID {sender_id} não encontrado."
+        )
 
-    logger.info("Transação iniciada com sucesso. Task ID: %s", result.id)
+    if sender.balance < transaction_data.amount:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Saldo insuficiente para realizar a transação."
+        )
 
-    return TransactionCreateResponse(message="Transação realizada com sucesso.", task_id=result.id)
+    receiver = session.query(User).filter(User.id == receiver_pix_key.user_id).first()
+
+    sender.balance -= transaction_data.amount
+    receiver.balance += transaction_data.amount
+
+    new_transaction = Transaction(sender_id=sender.id, receiver_id=receiver.id, amount=transaction_data.amount)
+
+    session.add(new_transaction)
+    session.commit()
+    session.refresh(new_transaction)
+
+    delete_data(f"user_{sender.id}")
+    delete_data(f"user_{receiver.id}")
+
+    logger.info("Transação realizada com sucesso.")
+
+    return TransactionCreateResponse(message="Transação realizada com sucesso.")
+

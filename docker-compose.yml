@@ -92,24 +92,6 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-  
-  celery:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: celery_worker
-    restart: always
-    depends_on:
-      - backend
-      - redis
-    environment:
-      - DB_URL=postgresql://user:password@postgres_primary:5432/base_bank
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - PYTHONPATH=/app/src
-    command: celery -A src.tasks.celery_config.celery_app worker --loglevel=info
-    volumes:
-      - ./backend:/app
 
   nginx:
     image: nginx:latest
