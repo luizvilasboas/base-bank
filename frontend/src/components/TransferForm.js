@@ -58,7 +58,7 @@ const TransferForm = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-lg">
+    <div className="bg-white p-6">
       <h3 className="text-2xl font-extrabold mb-6 text-gray-900">Transferir Dinheiro</h3>
       <form onSubmit={handleTransfer}>
         <div className="mb-4">
