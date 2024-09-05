@@ -91,17 +91,22 @@ def create_transaction(
             detail="Saldo insuficiente para realizar a transação."
         )
 
+    logger.info("Começando transação no core.")
     core_service.transaction(transaction_data.receiver_pix_key, transaction_data.amount, sender_id)
+    logger.info("Transação no core completa")
 
     sender.balance -= transaction_data.amount
 
-    receiver = session.query(User).filter(User.id == receiver_pix_key.user_id).first()
+    receiver = None
+
+    if receiver_pix_key:
+        receiver = session.query(User).filter(User.id == receiver_pix_key.user_id).first()
 
     session.commit()
 
     delete_data(f"user_{sender.id}")
 
-    if receiver:
+    if receiver and receiver_pix_key:
         delete_data(f"user_{receiver.id}")
 
     logger.info("Transação realizada com sucesso.")

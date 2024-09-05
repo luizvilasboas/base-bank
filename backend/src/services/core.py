@@ -1,9 +1,15 @@
 from utils.generators import generate_cpf, generate_phone_number
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 import requests
 import time
-import os
+import logging
 
+logger = logging.getLogger("core")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("logs/core.log")
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 class CoreService:
     def __init__(self, institution_id, institution_secret):
@@ -35,6 +41,9 @@ class CoreService:
 
     def transaction(self, key, amount, usuario_id):
         self.token, self.expiration_time = self.get_token_with_expiration()
+
+        logger.info(f"Infos passadas: key={key}, amount={amount}, usuario_id={usuario_id}")
+
         url = "https://projetosdufv.live/transacao"
 
         headers = {
@@ -51,15 +60,22 @@ class CoreService:
 
         response = requests.post(
             url, json=payload, headers=headers, allow_redirects=False)
+
         if response.status_code == 307:
             new_url = response.headers['Location']
             response = requests.post(new_url, json=payload, headers=headers)
 
+        logger.info(f"Resposta da transação: {response}")
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+        
+            logger.info(f"Aqui está o data: {data}")
+
+            if data["sucesso"] == False:
+                logger.info(f"Não foi achado a chave pix {key}")
+                raise HTTPException(detail="Falhou na hora de criar uma chave PIX no banco central", status_code=status.HTTP_404_NOT_FOUND)
         else:
-            raise HTTPException(
-                "Falhou na hora de criar uma transação no banco central", status_code=response.status_code)
+            raise HTTPException(detail="Falhou na hora de criar uma transação no banco central", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def register_key(self, key, user_id, key_type="chave_aleatoria"):
         self.token, self.expiration_time = self.get_token_with_expiration()
@@ -82,7 +98,7 @@ class CoreService:
             return response.json()
         else:
             raise HTTPException(
-                "Falhou na hora de criar uma chave PIX no banco central", status_code=response.status_code)
+                "Falhou na hora de criar uma chave PIX no banco central", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def register_user(self, name, email):
         self.token, self.expiration_time = self.get_token_with_expiration()

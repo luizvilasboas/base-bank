@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.src.models.models import User
-from backend.src.utils.utils import get_session
+from models.models import User
+from sqlalchemy.orm import Session
 from routers import auth, user, pix, transaction
-from database.database import Base, engine
+from database.database import Base, engine, SessionLocal
+from utils.redis import delete_data
 import pika
-import os
 import logging
 import threading
 import json
@@ -52,44 +52,60 @@ RABBITMQ_PASSWORD = "B@se_B@nk!2024#Pr0t3ct"
 QUEUE_RECEIVE = 'transacao_43fc5c28-adc6-4882-8510-d2cff3404f27_queue'
 QUEUE_RESPONSE = 'transacao_43fc5c28-adc6-4882-8510-d2cff3404f27_response_queue'
 
+def get_session():
+    """
+    Creates a new database session.
+
+    Returns:
+        Session: A new database session.
+    """
+    session = SessionLocal()
+    return session
+
+
+def update_user(session: Session, user_id, amount):
+    """Atualiza o saldo do cliente no banco de dados."""
+    client = session.query(User).filter(User.id == user_id).first()
+
+    if client:
+        client.balance += amount
+        session.commit()
+        session.refresh(client)
+        logger.info(
+            f'Saldo de {client.username} atualizado com sucesso para {client.balance}')
+    else:
+        logger.error(f'Cliente com ID de {user_id} não encontrado')
+
 
 def on_message(ch, method, properties, body):
     """Callback para processar as mensagens recebidas."""
     mensagem = body.decode()
     logger.info(f"Mensagem recebida: {mensagem}")
 
-    ammount = mensagem['valor']
-    to = mensagem['usuario_destino']
+    dados = json.loads(mensagem)
 
-    session = get_session()
+    logger.info('Passando dados para JSON')
 
-    try:
-        user = session.query(User).filter_by(id=to).first()
+    if 'usuario_destino' in dados and 'valor' in dados:
+        to = dados['usuario_destino']
+        amount = dados['valor']
 
-        if user:
-            user.balance += ammount
-            session.commit()
+        session = get_session()
 
-            logger.info(f"Adicionado {ammount} para usuário {user.username}, que agora tem {user.balance}")
-            resultado = {
-                "sucesso": True,
-                "mensagem": "Transação realizada com sucesso."
-            }
-        else:
-            logger.info("Usuário não encontrado.")
-            resultado = {
-                "sucesso": False,
-                "mensagem": "Usuário não encontrado."
-            }
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Erro ao processar a transação: {e}")
-        resultado = {
-            "sucesso": False,
-            "mensagem": "Erro ao processar a transação."
-        }
-    finally:
-        session.close()
+        try:
+            update_user(session=session, user_id=to, amount=amount)
+            delete_data(f"user_{to}")
+        except Exception as e:
+            logger.error(f"Erro ao processar a transação: {e}")
+        finally:
+            session.close()
+    else:
+        logger.error('Estrutura da menssagem errada.')
+
+    resultado = {
+        "sucesso": True,
+        "mensagem": "Transação realizada com sucesso."
+    }
 
     ch.basic_publish(
         exchange='',

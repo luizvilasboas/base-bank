@@ -65,18 +65,14 @@ class Transaction(Base):
 
     Attributes:
         id (int): Primary key, auto-incremented identifier for the transaction.
-        sender_id (int): Foreign key to the sender's user ID, cannot be null.
-        receiver_id (int): Foreign key to the receiver's user ID, can be null.
+        sender_id (int): Key to the sender's user ID, cannot be null.
+        receiver_id (int): Key to the receiver's user ID, can be null.
         amount (float): The amount of the transaction, cannot be null.
         timestamp (datetime): The date and time of the transaction, defaults to the current UTC time.
-        sender (User): Relationship to the User model, linking the sender to this transaction.
-        receiver (User): Relationship to the User model, linking the receiver to this transaction.
     """
     __tablename__ = "transactions"
     id = Column(Integer, primary_key=True, index=True)
-    sender_id = Column(String(255), ForeignKey("users.id"), nullable=False)
-    receiver_id = Column(String(255), ForeignKey("users.id"), nullable=True)
+    sender_id = Column(String(255), nullable=False)
+    receiver_id = Column(String(255), nullable=False)
     amount = Column(Float, nullable=False)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
-    sender = relationship("User", foreign_keys=[sender_id])
-    receiver = relationship("User", foreign_keys=[receiver_id])
