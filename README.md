@@ -19,7 +19,7 @@ Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, auten
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://gitlab.com/olooeez/base-bank.git
+   git clone https://github.com/luizvilasboas/base-bank.git
    cd base-bank
    ```
 
@@ -54,4 +54,4 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e merge r
 
 ## Licença
 
-Este projeto é licenciado sob a Licença MIT - veja o arquivo [LICENSE](https://gitlab.com/olooeez/base-bank/-/blob/main/LICENSE) para mais detalhes.
+Este projeto é licenciado sob a Licença MIT - veja o arquivo [LICENSE](https://github.com/luizvilasboas/base-bank/blob/main/LICENSE) para mais detalhes.
