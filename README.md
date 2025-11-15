@@ -1,57 +1,79 @@
 # base-bank
 
-Este projeto é uma API desenvolvida com FastAPI para gerenciar usuários, autenticação JWT, chaves Pix e transações financeiras. O projeto inclui endpoints para registro de usuários, login, logout, criação de chaves Pix, e transações entre usuários utilizando Pix.
+> An API developed with FastAPI to manage users, JWT authentication, Pix keys, and financial transactions.
 
-## Tecnologias Utilizadas
+## About the Project
 
-- **Python**: Linguagem de programação principal.
-- **FastAPI**: Framework para criação da API.
-- **SQLAlchemy**: ORM para interações com o banco de dados.
-- **JWT (JSON Web Tokens)**: Para autenticação e autorização.
-- **Pydantic**: Para validação e criação de esquemas de dados.
-- **PostgreSQL**: Banco de dados utilizado.
-- **Docker**: Para containerização do ambiente de desenvolvimento e produção.
-- **React**: Frontend para interação com a API.
-- **Celery**: Sistema de fila de tarefas distribuídas para execução assíncrona.
-- **Redis**: Banco de dados em memória usado como broker para Celery e para cache de dados. 
+This project is a financial API that includes user registration, login/logout, Pix key creation, and transactions between users using Pix. It is designed to be a scalable and secure backend system for financial applications.
 
-## Instalação
+The project is fully containerized using Docker, with backend services managed by FastAPI and asynchronous tasks handled by Celery with Redis.
 
-1. **Clone o repositório:**
-   ```bash
-   git clone https://github.com/luizvilasboas/base-bank.git
-   cd base-bank
-   ```
+## Tech Stack
 
-2. **Suba os serviços com o Docker:**
-   ```
-   docker compose up --scale backend=3 -d
-   ```
+The main technologies and libraries used in this project are:
 
-## Configuração
+*   **Backend:** [Python](https://www.python.org/), [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy](https://www.sqlalchemy.org/), [Celery](https://docs.celeryq.dev/)
+*   **Database:** [PostgreSQL](https://www.postgresql.org/), [Redis](https://redis.io/)
+*   **Frontend:** [React](https://react.dev/)
+*   **Authentication:** [JSON Web Tokens (JWT)](https://jwt.io/)
+*   **Containerization:** [Docker](https://www.docker.com/)
 
-- Certifique-se de configurar as variáveis de ambiente necessárias, como `DB_URL`, `JWT_SECRET_KEY`, `JWT_REFRESH_SECRET_KEY`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` e `REDIS_URL`.
+## Usage
 
-## Uso
+Below are the instructions for you to set up and run the project locally.
 
-1. **Acesse a interface web interativa com a API:**
-   - Abra o navegador e vá para: [127.0.0.1:3000](http://127.0.0.1:3000)
+### Prerequisites
 
-2. **Acesse a documentação interativa da API:**
-   - Abra o navegador e vá para: [127.0.0.1/docs](http://127.0.0.1/docs)
+You need to have the following software installed to run this project:
 
-## Endpoints Principais
+*   [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
 
-- **/auth/register**: Registro de novos usuários.
-- **/auth/login**: Login e obtenção de tokens de acesso e atualização.
-- **/auth/logout**: Logout e invalidação do token de acesso.
-- **/pix/create**: Criação de uma nova chave Pix.
-- **/transaction/create**: Criação de uma nova transação entre usuários.
+### Installation and Setup
 
-## Contribuição
+Follow the steps below:
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e merge requests para melhorias.
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/luizvilasboas/base-bank.git
+    ```
 
-## Licença
+2.  **Navigate to the project directory**
+    ```bash
+    cd base-bank
+    ```
 
-Este projeto é licenciado sob a Licença MIT - veja o arquivo [LICENSE](https://github.com/luizvilasboas/base-bank/blob/main/LICENSE) para mais detalhes.
+3.  **Run services with Docker Compose**
+    This command will start all services, including 3 instances of the backend for scalability.
+    ```bash
+    docker compose up --scale backend=3 -d
+    ```
+
+### Configuration
+
+Before running the project, ensure you have a properly configured environment. Key environment variables include `DB_URL`, `JWT_SECRET_KEY`, `JWT_REFRESH_SECRET_KEY`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`, and `REDIS_URL`.
+
+### Workflow
+
+1.  **Access the Web Interface:**
+    Open your browser and navigate to `http://127.0.0.1:3000`
+
+2.  **Access the Interactive API Documentation:**
+    Open your browser and navigate to `http://127.0.0.1/docs`
+
+## Key Endpoints
+
+-   `/auth/register`: Register a new user.
+-   `/auth/login`: Log in and receive access/refresh tokens.
+-   `/auth/logout`: Log out and invalidate the access token.
+-   `/pix/create`: Create a new Pix key.
+-   `/transaction/create`: Create a new transaction between users.
+
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
